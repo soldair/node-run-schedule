@@ -1,0 +1,41 @@
+{
+  "name": "run-schedule",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": {},
+  "directories": {
+    "example": "example",
+    "test": "test"
+  },
+  "dependencies": {
+    "request": "^2.55.0",
+    "through2": "^0.6.5",
+    "xtend": "^4.0.0"
+  },
+  "devDependencies": {
+    "mocktimers": "0.0.3",
+    "standard": "^3.6.1",
+    "tape": "^4.0.0"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/soldair/node-run-schedule.git"
+  },
+  "homepage": "https://github.com/soldair/node-run-schedule",
+  "keywords": [
+    "schedule", "cron", "time", "agenda", "jobs", "job", "timed", "interval", "work"
+  ],
+  "author": {
+    "name": "Ryan Day",
+    "email": "soldair@gmail.com",
+    "url": "https://github.com/soldair"
+  },
+  "license": "MIT",
+  "engine": {
+    "node": ">=0.6"
+  }
+}
