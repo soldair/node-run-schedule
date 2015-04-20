@@ -1,72 +1,83 @@
 var through2 = require('through2')
 
-module.exports = function (s,options,step){
-  if(!s.length) return false;
+module.exports = function (s, options, step) {
+  if (!s.length) return false
 
-  if(typeof options === 'function') {
-    step = options;
-    options = {};
+  if (typeof options === 'function') {
+    step = options
+    options = {}
   }
 
-  options = options||{};
-  var repeat = options.repeat;
+  if (options === true) options = {repeat: true}
+
+  options = options || {}
+  var repeat = options.repeat
+  var ended = false
 
   // the readble stream returned.
-  var out = through2.obj();
+  var out = through2.obj(function (chunk, enc, cb) {
+    this.push(chunk)
+    cb()
+  }, function (cb) {
+    ended = true
+    cb()
+  })
 
   // allow time functions to be mocked.
-  var time = module.exports.time;
+  var time = module.exports.time
 
-  var pos = 0;
-  var timeout;
-  var ended = false
-  (function next(){
-    var t = time.now();
-    var duration = s[pos].duration;
+  var pos = 0
 
-    var _pos = pos;
-    var job = s[_pos];
+  ;(function next () {
+    var t = time.now()
+    var duration = s[pos].duration
+
+    if (ended) return
+
+    var _pos = pos
+    var job = s[_pos]
+
     // log start state.
-    out.write({state:"start",id:s[pos].id||pos,start:t})
+    out.push({state: 'start', id: s[pos].id || pos, start: t, time: t})
 
     // trigger "running" on the job if it excedes it's execution window.
-    var nextJobTimeout = time.timeout(function(){
-      out.write({state:"running",id:job.id||_pos,start:t,end:end,error:"callback not called within duration.",duration:job.duration});
-    },duration);
+    var nextJobTimeout = time.timeout(function () {
+      out.push({state: 'running', id: job.id || _pos, start: t, time: time.now(), error: 'callback not called within duration.', duration: job.duration})
+    }, duration)
 
-    step(job,function(err,data){
-      time.clear(nextJobTimeout);
+    step(job, function (err, data) {
+      time.clear(nextJobTimeout)
 
-      if (ended) return;
+      if (ended) return
 
-      var now = time.now();
-      var elapsed = now-t;
-      var remaining = duration-elapsed;
-      if(remaning < 0) remaining = 0;
+      var now = time.now()
+      var elapsed = now - t
+      var remaining = duration - elapsed
+      if (remaining < 0) remaining = 0
 
-      if(err) out.write({state:"error",id:job.id||_pos,start:t,end:end,error:err,duration:duration})
-      else out.write({state:"success",id:job.id||_pos,start:t,end:end,data:data,duration:duration})
+      var log = {id: job.id || _pos, start: t, end: now, time: now, error: err, data: data, duration: duration}
 
-      time.timeout(function(){
-        ++pos;
+      if (err) log.state = 'error'
+      else log.state = 'success'
+
+      out.push(log)
+
+      time.timeout(function () {
+        ++pos
         if (pos === s.length) {
           if (repeat) pos = 0
           else return out.end()
         }
 
-        if (ended) return;
-        next();
-      },remaining);
-      // duration has to be corrected based on potential overrun from the previous step.
-      // overrun has to be reported.
-    });
-  })();
+        if (ended) return
+        next()
+      }, remaining)
+    // duration has to be corrected based on potential overrun from the previous step.
+    // overrun has to be reported.
+    })
+  })()
 
-  obj.on('end',function(){
-    ended = true;
-  })
-
-  return obj;
+  return out
 }
 
-module.exports.time = {interval:setInterval,timeout:setTimeout,now:Date.now};
+module.exports.time = {interval: setInterval, timeout: setTimeout, now: Date.now}
